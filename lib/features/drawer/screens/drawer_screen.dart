@@ -131,7 +131,7 @@ class DrawerScreen extends StatelessWidget {
                   iconData: Icons.add_home_work_outlined,
                   onTap: () {
                     Get.back();
-                    Get.to(() => const HomeworkScreen());
+                    Get.to(() => HomeworkScreen());
                   },
                 ),
                 CustomListTile(

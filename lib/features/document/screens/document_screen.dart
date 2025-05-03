@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart'; // Pour afficher les PDF
-import '../../../services/api/data/data_repository.dart';
-import '../../../models/chapitre_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import '../bloc/document_bloc.dart';
+import '../bloc/document_event.dart';
+import '../bloc/document_state.dart';
 
 class DocumentScreen extends StatefulWidget {
   const DocumentScreen({super.key});
@@ -12,165 +14,321 @@ class DocumentScreen extends StatefulWidget {
 
 class _DocumentScreenState extends State<DocumentScreen>
     with SingleTickerProviderStateMixin {
-  late TabController tabController;
-  final DatasRepository dataRepo = DatasRepository();
-  List<ChapitreModel> chapitres = []; // Liste des chapitres
-  bool isLoading = true; // Indicateur de chargement
-  String? errorMessage; // Message d'erreur
+  late TabController _tabController;
+  final List<String> _categories = [
+    'guides',
+    'livres',
+    'pedagogiques',
+    'autres',
+  ];
 
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 4, vsync: this);
-    _fetchData(); // Récupérer les données au démarrage
+    _tabController = TabController(length: _categories.length, vsync: this);
+    context.read<DocumentBloc>().add(FetchDocuments());
   }
 
   @override
   void dispose() {
-    tabController.dispose();
+    _tabController.dispose();
     super.dispose();
-  }
-
-  // Récupérer les données en ligne avec fallback offline
-  Future<void> _fetchData() async {
-    try {
-      final data = await dataRepo.fetchAllDatas();
-      setState(() {
-        chapitres = data["chapitres"] as List<ChapitreModel>;
-        isLoading = false;
-      });
-    } catch (e) {
-      // Si la récupération en ligne échoue, on affiche le message d'erreur
-      setState(() {
-        isLoading = false;
-        errorMessage = 'Erreur lors du chargement des données: $e';
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Barre d'onglets
-            Container(
-              height: 60,
-              margin: const EdgeInsets.all(8),
-              padding: const EdgeInsets.all(4),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
+      body: Column(
+        children: [
+          // En-tête personnalisé
+          Container(
+            padding: const EdgeInsets.only(
+              top: 40,
+              left: 16,
+              right: 16,
+              bottom: 8,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.green.shade700,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
               ),
-              child: TabBar(
-                controller: tabController,
-                padding: const EdgeInsets.all(8),
-                labelPadding: const EdgeInsets.all(8),
-                isScrollable: true,
-                indicator: BoxDecoration(
-                  borderRadius: const BorderRadius.all(Radius.circular(6)),
-                  color: Colors.green,
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Documents',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                tabs: const [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: Text("Guides"),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: Text("Livres"),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: Text("Pédagogiques"),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: Text("Autres"),
-                  ),
-                ],
-              ),
+                const SizedBox(height: 16),
+                _buildTabBar(),
+              ],
             ),
-            // Contenu des onglets
-            Expanded(
-              child:
-                  isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : errorMessage != null
-                      ? Center(child: Text(errorMessage!))
-                      : TabBarView(
-                        controller: tabController,
-                        children: [
-                          _buildChapitreList('Guides'),
-                          _buildChapitreList('Livres'),
-                          _buildChapitreList('Pédagogiques'),
-                          _buildChapitreList('Autres'),
-                        ],
-                      ),
+          ),
+          // Contenu principal
+          Expanded(
+            child: BlocBuilder<DocumentBloc, DocumentState>(
+              builder: (context, state) {
+                if (state is DocumentLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (state is DocumentError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          state.error,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed:
+                              () => context.read<DocumentBloc>().add(
+                                FetchDocuments(),
+                              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                          ),
+                          child: const Text(
+                            'Réessayer',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (state is DocumentLoaded) {
+                  return TabBarView(
+                    controller: _tabController,
+                    children:
+                        _categories.map((category) {
+                          return _buildDocumentList(state.documents, category);
+                        }).toList(),
+                  );
+                }
+
+                return const Center(child: Text('Charger les documents'));
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // Filtrer et afficher la liste des chapitres pour une catégorie donnée
-  Widget _buildChapitreList(String category) {
-    final filteredChapitres =
-        chapitres
-            .where(
-              (chapitre) =>
-                  chapitre.categorie.toLowerCase() == category.toLowerCase(),
-            )
-            .toList();
+  Widget _buildTabBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.white,
+        ),
+        labelColor: Colors.green.shade800,
+        unselectedLabelColor: Colors.white,
+        tabs:
+            _categories.map((category) {
+              return Tab(text: _capitalize(category));
+            }).toList(),
+      ),
+    );
+  }
 
-    if (filteredChapitres.isEmpty) {
+  Widget _buildDocumentList(List<dynamic> documents, String category) {
+    final filteredDocs =
+        documents.where((doc) => doc['categorie'] == category).toList();
+
+    if (filteredDocs.isEmpty) {
       return Center(
         child: Text(
-          "Aucun document disponible dans la catégorie \"$category\"",
+          'Aucun document dans la catégorie ${_capitalize(category)}',
+          style: TextStyle(color: Colors.grey.shade600),
         ),
       );
     }
 
     return ListView.builder(
-      itemCount: filteredChapitres.length,
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredDocs.length,
       itemBuilder: (context, index) {
-        final chapitre = filteredChapitres[index];
-        return Card(
-          margin: const EdgeInsets.all(8.0),
+        final document = filteredDocs[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           child: ListTile(
-            leading: const Icon(
-              Icons.picture_as_pdf,
-              size: 40,
-              color: Colors.green,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
             ),
-            title: Text(chapitre.titre),
-            subtitle: Text("Matière: ${chapitre.matiereId}"),
-            onTap: () {
-              _openPdf(context, chapitre.fichierPdf); // Ouvrir le PDF
-            },
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.picture_as_pdf,
+                size: 30,
+                color: Colors.red,
+              ),
+            ),
+            title: Text(
+              document['titre'] ?? 'Sans titre',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Date: ${document['date']}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  ),
+                  if (document['description'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        document['description']!,
+                        style: TextStyle(
+                          color: Colors.grey.shade800,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            trailing: Icon(Icons.chevron_right, color: Colors.green.shade700),
+            onTap: () => _openPdf(context, document['fichier_pdf']),
           ),
         );
       },
     );
   }
 
-  // Ouvrir un fichier PDF dans un nouvel écran
-  void _openPdf(BuildContext context, String pdfUrl) {
+  void _openPdf(BuildContext context, String? pdfUrl) {
+    if (pdfUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aucun fichier PDF disponible'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (context) => Scaffold(
-              appBar: AppBar(
-                title: const Text("PDF Viewer"),
-                backgroundColor: Colors.green,
+              backgroundColor: Colors.grey.shade100,
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    // En-tête personnalisé pour le visualiseur PDF
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade700,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.3),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.white,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          const Text(
+                            'Document PDF',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(child: _buildPdfViewer(pdfUrl)),
+                  ],
+                ),
               ),
-              body: SfPdfViewer.network(pdfUrl),
             ),
       ),
     );
+  }
+
+  Widget _buildPdfViewer(String pdfUrl) {
+    return FutureBuilder(
+      future: _initializePdfViewer(pdfUrl),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Erreur: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+          }
+          return snapshot.data!;
+        }
+        return Center(
+          child: CircularProgressIndicator(color: Colors.green.shade700),
+        );
+      },
+    );
+  }
+
+  Future<Widget> _initializePdfViewer(String pdfUrl) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return SfPdfViewer.network(
+      pdfUrl,
+      canShowScrollHead: false,
+      canShowScrollStatus: true,
+    );
+  }
+
+  String _capitalize(String input) {
+    return "${input[0].toUpperCase()}${input.substring(1)}";
   }
 }

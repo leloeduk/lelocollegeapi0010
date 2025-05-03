@@ -1,60 +1,232 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/class_bloc.dart';
+import '../models/school_class_model.dart';
 
-import '../controllers/api_class_controller.dart';
-import '../widgets/classe_card.dart';
-
-class ClassesMatieresChapitresPage extends StatelessWidget {
+class ClassMatiereScreen extends StatefulWidget {
   final String className;
-  final Color currentColor;
 
-  const ClassesMatieresChapitresPage({
-    super.key,
-    required this.className,
-    required this.currentColor,
-  });
+  const ClassMatiereScreen({super.key, required this.className});
+
+  @override
+  State<ClassMatiereScreen> createState() => _ClassMatiereScreenState();
+}
+
+class _ClassMatiereScreenState extends State<ClassMatiereScreen> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<ClassBloc>().add(FetchClasses());
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Utilisation de ApiClassController à la place de ClassesController
-    final ApiClassController controller = Get.put(ApiClassController());
-
-    // Vous pouvez choisir d'appeler fetchData ici ou dans une action sur un bouton.
-    // Par exemple, ici nous essayons de charger d'abord le cache, puis on récupère en ligne.
-    controller.loadCachedData();
-    controller.fetchData();
-
     return Scaffold(
-      appBar: AppBar(title: Text(className), backgroundColor: currentColor),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return Center(
-            child: CircularProgressIndicator(color: Colors.green.shade800),
-          );
-        }
-        if (controller.data.isEmpty) {
-          return Center(
-            child: Text(
-              "Aucune donnée disponible.",
-              style: TextStyle(color: Colors.grey),
-            ),
-          );
-        }
-        return ListView.builder(
-          itemCount: controller.data.length,
-          itemBuilder: (context, index) {
-            // Ici, nous supposons que chaque élément de 'data' correspond à une "classe" à afficher.
-            // Vous pouvez adapter l'extraction des données en fonction de votre structure JSON.
-            final classe = controller.data[index];
-            return ClasseCard(
-              // On suppose que 'classe' contient un attribut 'nom'.
-              // Si vous avez un modèle spécifique, vous pouvez convertir la map en instance de votre modèle.
-              classe: classe,
-              currentColor: currentColor,
+      appBar: AppBar(
+        title: Text(
+          widget.className,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.green.shade700,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.green.shade700, Colors.green.shade200],
+          ),
+        ),
+        child: BlocBuilder<ClassBloc, ClassState>(
+          builder: (context, state) {
+            if (state is ClassLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              );
+            } else if (state is ClassLoaded) {
+              final classe = state.classes.firstWhere(
+                (c) => c.nom == widget.className,
+                orElse:
+                    () => SchoolClassModel(
+                      id: -1,
+                      nom: '',
+                      matieres: [],
+                      author: '',
+                    ),
+              );
+
+              if (classe.id == -1) {
+                return Center(
+                  child: Text(
+                    'Classe non trouvée',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: ListView(
+                  children:
+                      classe.matieres.map((matiere) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Card(
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ExpansionTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.green.shade100,
+                                child: Text(
+                                  matiere.nom.substring(0, 1),
+                                  style: TextStyle(
+                                    color: Colors.green.shade800,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                matiere.nom,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              children:
+                                  matiere.chapitres.map((chapitre) {
+                                    return Container(
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          top: BorderSide(
+                                            color: Colors.grey.shade200,
+                                            width: 1,
+                                          ),
+                                        ),
+                                      ),
+                                      child: ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                            ),
+                                        leading: Icon(
+                                          Icons.bookmark_border,
+                                          color: Colors.green.shade600,
+                                        ),
+                                        title: Text(
+                                          chapitre.titre,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        subtitle:
+                                            chapitre.fichierPdf.isNotEmpty
+                                                ? Text(
+                                                  'PDF disponible',
+                                                  style: TextStyle(
+                                                    color:
+                                                        Colors.green.shade600,
+                                                  ),
+                                                )
+                                                : Text(
+                                                  'Pas de fichier PDF',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                        trailing:
+                                            chapitre.fichierPdf.isNotEmpty
+                                                ? Icon(
+                                                  Icons.lock_open,
+                                                  color: Colors.green.shade600,
+                                                )
+                                                : Icon(
+                                                  Icons.lock_outline,
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                        onTap: () {
+                                          if (chapitre.fichierPdf.isNotEmpty) {
+                                            // Ouvrir le PDF
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                ),
+              );
+            } else if (state is ClassError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.white,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Erreur de chargement',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      state.error,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<ClassBloc>().add(FetchClasses());
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        'Réessayer',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Center(
+              child: Text(
+                'Prêt à charger',
+                style: TextStyle(color: Colors.white),
+              ),
             );
           },
-        );
-      }),
+        ),
+      ),
     );
   }
 }

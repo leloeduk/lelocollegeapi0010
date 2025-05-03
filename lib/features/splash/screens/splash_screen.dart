@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lelocollege/features/home/screens/home_screen.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../../routes/app_routes.dart';
+import '../../home/screens/app_screen.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -10,7 +12,9 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Future.delayed(Duration(seconds: 5), () {
       // ignore: use_build_context_synchronously
-      Get.toNamed(AppRoutes.appscreen);
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => AppScreen()));
     });
 
     return Scaffold(

@@ -1,15 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../../core/utils/app_colors.dart';
 import '../../class/screens/class_matiere_screen.dart';
+import '../../document/screens/document_screen.dart';
+import '../../homework/screens/homework_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> classes = [
-    {'name': '6ème', 'icon': Icons.book},
-    {'name': '5ème', 'icon': Icons.school},
-    {'name': '4ème', 'icon': Icons.cast_for_education},
-    {'name': '3ème', 'icon': Icons.science},
+  final List<Map<String, dynamic>> menuItems = [
+    {
+      'title': '6ème',
+      'color': Colors.green[900]!,
+      'icon': Icons.school,
+      'screen': ClassMatiereScreen(className: '6eme'),
+    },
+    {
+      'title': '5ème',
+      'color': Colors.yellow[900]!,
+      'icon': Icons.school,
+      'screen': ClassMatiereScreen(className: '5eme'),
+    },
+    {
+      'title': '4ème',
+      'color': Colors.grey[900]!,
+      'icon': Icons.school,
+      'screen': ClassMatiereScreen(className: '4eme'),
+    },
+    {
+      'title': '3ème',
+      'color': Colors.red[900]!,
+      'icon': Icons.school,
+      'screen': ClassMatiereScreen(className: '3eme'),
+    },
+    {
+      'title': 'Devoirs',
+      'color': Colors.blue[900]!,
+      'icon': Icons.assignment,
+      'screen': HomeworkScreen(),
+    },
+    {
+      'title': 'Documents',
+      'color': Colors.purple[900]!,
+      'icon': Icons.library_books,
+      'screen': const DocumentScreen(),
+    },
   ];
 
   HomeScreen({super.key});
@@ -18,204 +53,124 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.green.shade900,
-                      AppColors.secondaryGreen,
-                      Colors.white,
-                      Colors.white,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      bottom: 0,
-                      child: Container(
-                        height: 150,
-                        width: 180,
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage("assets/images/1.png"),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          " C'est quoi ça ? ",
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      top: 6,
-                      right: 0,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Text(
-                            "LELO COLLÈGE",
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "Une Application\n éducative pour aider ",
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "Les enseignants \n élèves et \n parents d'élèves ",
-                            style: TextStyle(
-                              color: Colors.green.shade900,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      body: Column(
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 20),
+          Expanded(
+            child: GridView.count(
+              padding: const EdgeInsets.all(16),
+              crossAxisCount: 2,
+              childAspectRatio: 1.0,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children:
+                  menuItems
+                      .map((item) => _buildMenuCard(context, item))
+                      .toList(),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              flex: 4,
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                children: [
-                  BuildCard(
-                    title: classes[0]['name'],
-                    color: Colors.green[900]!,
-                    icon: Icons.school,
-                    page: ClassesMatieresChapitresPage(
-                      className: classes[0]['name'],
-                      currentColor: Colors.green[900]!,
-                    ),
-                  ),
-                  BuildCard(
-                    title: classes[1]['name'],
-                    color: Colors.yellow[900]!,
-                    icon: Icons.school,
-                    page: ClassesMatieresChapitresPage(
-                      className: classes[1]['name'],
-                      currentColor: Colors.yellow[900]!,
-                    ),
-                  ),
-                  BuildCard(
-                    title: classes[2]['name'],
-                    color: Colors.grey[900]!,
-                    icon: Icons.school,
-                    page: ClassesMatieresChapitresPage(
-                      className: classes[2]['name'],
-                      currentColor: Colors.grey[900]!,
-                    ),
-                  ),
-                  BuildCard(
-                    title: classes[3]['name'],
-                    color: Colors.red[900]!,
-                    icon: Icons.school,
-                    page: ClassesMatieresChapitresPage(
-                      className: classes[3]['name'],
-                      currentColor: Colors.red[900]!,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
+          ),
+        ],
+      ),
+      // floatingActionButton: BlocBuilder<AdsBloc, AdsState>(
+      //   builder: (context, state) {
+      //     if (state is BannerAdLoaded) {
+      //       return SizedBox(
+      //         width: state.bannerAd.size.width.toDouble(),
+      //         height: state.bannerAd.size.height.toDouble(),
+      //         child: ConstrainedBox(
+      //           constraints: BoxConstraints(
+      //             minWidth: state.bannerAd.size.width.toDouble(),
+      //             maxWidth: state.bannerAd.size.width.toDouble(),
+      //             minHeight: state.bannerAd.size.height.toDouble(),
+      //             maxHeight: state.bannerAd.size.height.toDouble(),
+      //           ),
+      //           child: AdWidget(ad: state.bannerAd),
+      //         ),
+      //       );
+      //     }
+      //     return const SizedBox(height: 50);
+      //   },
+      // ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.green.shade900, AppColors.secondaryGreen],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
         ),
       ),
-      bottomSheet: Container(
-        height: 70,
-        width: double.infinity,
-        color: Colors.red,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 20,
+            bottom: 20,
+            child: Image.asset("assets/images/logo.png", width: 120),
+          ),
+          const Positioned(
+            right: 20,
+            top: 50,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  "LELO COLLÈGE",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "Plateforme éducative complète\npour élèves et enseignants",
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class BuildCard extends StatelessWidget {
-  const BuildCard({
-    required this.title,
-    required this.color,
-    required this.icon,
-    required this.page,
-    super.key,
-  });
-
-  final String title;
-  final Color color;
-  final IconData icon;
-  final Widget page;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap:
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => page),
-          ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(color: Colors.black26, blurRadius: 5, spreadRadius: 2),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 50, color: Colors.white),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+  Widget _buildMenuCard(context, Map<String, dynamic> item) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: item['color'],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap:
+            () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (context) => item['screen'])),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(item['icon'], size: 40, color: Colors.white),
+              const SizedBox(height: 10),
+              Text(
+                item['title'],
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
