@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:lelocollege/features/document/bloc/document_bloc.dart';
+import '../../../features/document/domain/models/document_model.dart';
 
 class ApiDocument {
   static const String _baseUrl =
@@ -10,7 +10,8 @@ class ApiDocument {
     final response = await http.get(Uri.parse(_baseUrl));
 
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => DocumentModel.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load classes');
     }
