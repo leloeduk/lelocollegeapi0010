@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:lelocollege/features/home/screens/home_screen.dart';
 import '../../../core/utils/app_colors.dart';
-import '../../../routes/app_routes.dart';
 import '../../home/screens/app_screen.dart';
 
 class SplashScreen extends StatelessWidget {

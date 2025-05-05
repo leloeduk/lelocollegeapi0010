@@ -7,6 +7,8 @@ import '../bloc/homework_state.dart';
 import '../models/homework_model.dart';
 
 class HomeworkScreen extends StatefulWidget {
+  const HomeworkScreen({super.key});
+
   @override
   _HomeworkScreenState createState() => _HomeworkScreenState();
 }
